@@ -2,10 +2,10 @@
 //  NetworkMonitor
 //  A real-time network monitoring device.
 // ============================================================
-// 
+//
 // Board: LOLIN D32
 // Partition scheme: No OTA (Large APP)
-// 
+//
 // ============================================================
 
 #include <WiFi.h>
@@ -81,9 +81,18 @@ TaskHandle_t notificationTaskHandle = nullptr;
 
 bool loadConfig() {
   preferences.begin("app_config", true);
-  strlcpy(bot_token, preferences.getString("bot_token", "").c_str(), MAX_TOKEN_LENGTH);
-  strlcpy(chat_id, preferences.getString("chat_id", "").c_str(), MAX_CHAT_ID_LENGTH);
-  strlcpy(timezone, preferences.getString("timezone", "").c_str(), MAX_TIMEZONE_LENGTH);
+  strlcpy(
+    bot_token,
+    preferences.getString("bot_token", "").c_str(),
+    MAX_TOKEN_LENGTH);
+  strlcpy(
+    chat_id,
+    preferences.getString("chat_id", "").c_str(),
+    MAX_CHAT_ID_LENGTH);
+  strlcpy(
+    timezone,
+    preferences.getString("timezone", "").c_str(),
+    MAX_TIMEZONE_LENGTH);
   preferences.end();
   return (strlen(bot_token) > 0 && strlen(chat_id) > 0);
 }
@@ -153,7 +162,11 @@ void parsePacket(const uint8_t *data, uint16_t length) {
      * Also known as the "DHCP Magic Cookie" or "Magic Cookie"
      * as defined in RFC 2131.
      */
-  if (memcmp(&data[236], "\x63\x82\x53\x63", 4) != 0) {
+  if (memcmp(
+        &data[236],
+        "\x63\x82\x53\x63",
+        4)
+      != 0) {
     Serial.println("Invalid DHCP Magic Cookie");
     return;
   }
@@ -242,9 +255,10 @@ void parsePacket(const uint8_t *data, uint16_t length) {
           size_t copy_len = (option_len < (sizeof(device_name) - 1))
                               ? option_len
                               : (sizeof(device_name) - 1);
-          memcpy(device_name,
-                 &data[opp + 2],
-                 copy_len);
+          memcpy(
+            device_name,
+            &data[opp + 2],
+            copy_len);
           device_name[copy_len] = '\0';
           break;
         }
@@ -275,11 +289,12 @@ void parsePacket(const uint8_t *data, uint16_t length) {
         {
           if (option_len >= 4) {
             // IP is stored as 4 bytes in network order
-            snprintf(device_ip,
-                     sizeof(device_ip),
-                     "%u.%u.%u.%u",
-                     data[opp + 2], data[opp + 3],
-                     data[opp + 4], data[opp + 5]);
+            snprintf(
+              device_ip,
+              sizeof(device_ip),
+              "%u.%u.%u.%u",
+              data[opp + 2], data[opp + 3],
+              data[opp + 4], data[opp + 5]);
           }
           break;
         }
@@ -287,11 +302,12 @@ void parsePacket(const uint8_t *data, uint16_t length) {
       case 0x36:  // DHCP Server Identifier - RFC 2132
         {
           if (option_len >= 4) {
-            snprintf(server_ip,
-                     sizeof(server_ip),
-                     "%u.%u.%u.%u",
-                     data[opp + 2], data[opp + 3],
-                     data[opp + 4], data[opp + 5]);
+            snprintf(
+              server_ip,
+              sizeof(server_ip),
+              "%u.%u.%u.%u",
+              data[opp + 2], data[opp + 3],
+              data[opp + 4], data[opp + 5]);
           }
           break;
         }
@@ -357,21 +373,25 @@ void parsePacket(const uint8_t *data, uint16_t length) {
   if (packet_type == 0x03) {
     Notification notification;
 
-    strlcpy(notification.hostname,
-            device_name,
-            sizeof(notification.hostname));
+    strlcpy(
+      notification.hostname,
+      device_name,
+      sizeof(notification.hostname));
 
-    strlcpy(notification.ip,
-            device_ip,
-            sizeof(notification.ip));
+    strlcpy(
+      notification.ip,
+      device_ip,
+      sizeof(notification.ip));
 
-    strlcpy(notification.mac,
-            device_mac,
-            sizeof(notification.mac));
+    strlcpy(
+      notification.mac,
+      device_mac,
+      sizeof(notification.mac));
 
-    if (xQueueSend(notificationQueue,
-                   &notification,
-                   0)
+    if (xQueueSend(
+          notificationQueue,
+          &notification,
+          0)
         != pdPASS) {
       Serial.println("Notification queue full");
     }
@@ -433,9 +453,10 @@ void onPacket(AsyncUDPPacket packet) {
      * This is acceptable for monitoring - losing a packet
      * doesn't break the system, and the queue will clear.
      */
-  if (xQueueSend(dhcpQueue,
-                 &msg,
-                 pdMS_TO_TICKS(1))
+  if (xQueueSend(
+        dhcpQueue,
+        &msg,
+        pdMS_TO_TICKS(1))
       != pdPASS) {
     Serial.println("DHCP queue full");
   }
@@ -553,12 +574,15 @@ void setup() {
     "Timezone:",
     timezone,
     MAX_TIMEZONE_LENGTH);
+
   wm.addParameter(&custom_text_box1);
   wm.addParameter(&custom_text_box2);
   wm.addParameter(&custom_text_box3);
+
   wm.setSaveConfigCallback(saveConfigCallback);
   wm.setConfigPortalTimeout(180);
   wm.setConnectTimeout(30);
+
   while (!wm.autoConnect(AP_NAME, AP_PASSWORD)) {
     vTaskDelay(pdMS_TO_TICKS(1000));
     Serial.println("Waiting for WiFi configuration.");
@@ -581,7 +605,11 @@ void setup() {
 
   // NTP Time Sync
   sntp_set_time_sync_notification_cb(timeAvailable);
-  configTzTime(timezone, "time.google.com", "time.cloudflare.com", "pool.ntp.org");
+  configTzTime(
+    timezone,
+    "time.google.com",
+    "time.cloudflare.com",
+    "pool.ntp.org");
   while (sntp_get_sync_status() != SNTP_SYNC_STATUS_COMPLETED) {
     vTaskDelay(pdMS_TO_TICKS(1000));
     Serial.println("Waiting for NTP sync");
