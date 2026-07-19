@@ -2,11 +2,11 @@
 //  NetworkMonitor
 //  A real-time network monitoring device.
 // ============================================================
-//
-// Board: LOLIN D32
-// Partition scheme: No OTA (Large APP)
-//
+//  Board: LOLIN D32
+//  Partition Scheme: No OTA (Large APP)
 // ============================================================
+
+#include <Arduino.h>
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
@@ -54,7 +54,7 @@ AsyncUDP udp;
 WiFiClientSecure client;
 AsyncTelegram2 bot(client);
 
-// DHCP packet structure for queue
+// DHCP packet structure for queue and task
 struct DHCPPacket {
   uint16_t length;
   uint8_t data[1500];
@@ -62,7 +62,9 @@ struct DHCPPacket {
 
 QueueHandle_t dhcpQueue;
 
-// Notification structure for queue
+TaskHandle_t dhcpTaskHandle = nullptr;
+
+// Notification structure for queue and task
 struct Notification {
   char hostname[64];
   char ip[16];
@@ -71,8 +73,6 @@ struct Notification {
 
 QueueHandle_t notificationQueue;
 
-//
-TaskHandle_t dhcpTaskHandle = nullptr;
 TaskHandle_t notificationTaskHandle = nullptr;
 
 // ============================================================
@@ -113,19 +113,19 @@ void resetConfig() {
 
 // ============================================================
 //  DHCP PACKET PARSING
-//  ============================================================
+// ============================================================
 //
 //  DHCP packet structure (simplified):
-//  +-------------+----------------+---------------------------+
-//  | Offset      | Field          | Description               |
-//  +-------------+----------------+---------------------------+
-//  | 0           | op             | 1=Request, 2=Reply        |
-//  | 1           | htype          | 1=Ethernet                |
-//  | 2           | hlen           | 6 = MAC length            |
-//  | 28-33       | chaddr         | Client MAC (6 bytes)      |
-//  | 236-239     | magic          | 0x63825363 (DHCP cookie)  |
-//  | 240+        | options        | Variable length options   |
-//  +-------------+----------------+---------------------------+
+//  +-------------+----------------+--------------------------+
+//  | Offset      | Field          | Description              |
+//  +-------------+----------------+--------------------------+
+//  | 0           | op             | 1=Request, 2=Reply       |
+//  | 1           | htype          | 1=Ethernet               |
+//  | 2           | hlen           | 6 = MAC length           |
+//  | 28-33       | chaddr         | Client MAC (6 bytes)     |
+//  | 236-239     | magic          | 0x63825363 (DHCP cookie) |
+//  | 240+        | options        | Variable length options  |
+//  +-------------+----------------+--------------------------+
 //
 //  Important DHCP Options:
 //  - Option 0x0C: Hostname
@@ -156,12 +156,12 @@ void parsePacket(const uint8_t *data, uint16_t length) {
   }
 
   /*
-     * DHCP Magic Cookie:
-     * Located at offset 236, this 4-byte value (0x63825363)
-     * identifies the packet as a valid DHCP packet.
-     * Also known as the "DHCP Magic Cookie" or "Magic Cookie"
-     * as defined in RFC 2131.
-     */
+   * DHCP Magic Cookie:
+   * Located at offset 236, this 4-byte value (0x63825363)
+   * identifies the packet as a valid DHCP packet.
+   * Also known as the "DHCP Magic Cookie" or "Magic Cookie"
+   * as defined in RFC 2131.
+   */
   if (memcmp(
         &data[236],
         "\x63\x82\x53\x63",
@@ -178,21 +178,21 @@ void parsePacket(const uint8_t *data, uint16_t length) {
   char server_ip[16] = { 0 };    // DHCP Server IP from option 0x36
 
   /*
-     * DHCP header field offsets:
-     * - hlen (hardware address length) at offset 2
-     * - chaddr (client MAC address) at offset 28
-     */
+   * DHCP header field offsets:
+   * - hlen (hardware address length) at offset 2
+   * - chaddr (client MAC address) at offset 28
+   */
   constexpr uint8_t CLIENT_ADDR_LEN_OFFSET = 2;
   constexpr uint8_t CLIENT_ADDR_OFFSET = 28;
 
   uint8_t packet_type = 0;  // Will store DHCP message type
 
   /*
-     * Extract MAC address from chaddr field
-     * The 'hlen' field at offset 2 tells us the length of the
-     * hardware address. For Ethernet, this is 6 bytes.
-     * The MAC starts at offset 28 and is 6 bytes long.
-     */
+   * Extract MAC address from chaddr field
+   * The 'hlen' field at offset 2 tells us the length of the
+   * hardware address. For Ethernet, this is 6 bytes.
+   * The MAC starts at offset 28 and is 6 bytes long.
+   */
   uint8_t mac_len = data[CLIENT_ADDR_LEN_OFFSET];
   if (mac_len == 6)  // Standard Ethernet MAC length
   {
@@ -209,17 +209,17 @@ void parsePacket(const uint8_t *data, uint16_t length) {
   }
 
   /*
-     * Parse DHCP Options (starting at offset 240)
-     *
-     * DHCP options are TLV (Type-Length-Value) encoded:
-     * - Type: 1 byte (0x0C, 0x35, 0x32, etc.)
-     * - Length: 1 byte (number of bytes in Value)
-     * - Value: Variable length (data)
-     *
-     * The loop iterates through all options until it finds:
-     * - 0xFF: End of options
-     * - 0x00: Padding (skip)
-     */
+   * Parse DHCP Options (starting at offset 240)
+   *
+   * DHCP options are TLV (Type-Length-Value) encoded:
+   * - Type: 1 byte (0x0C, 0x35, 0x32, etc.)
+   * - Length: 1 byte (number of bytes in Value)
+   * - Value: Variable length (data)
+   *
+   * The loop iterates through all options until it finds:
+   * - 0xFF: End of options
+   * - 0x00: Padding (skip)
+   */
   uint16_t opp = 240;  // Current position in options
 
   while (opp < length) {
@@ -245,9 +245,9 @@ void parsePacket(const uint8_t *data, uint16_t length) {
     }
 
     /*
-         * Process specific DHCP options
-         * Each case extracts data and stores it in the appropriate buffer
-         */
+     * Process specific DHCP options
+     * Each case extracts data and stores it in the appropriate buffer
+     */
     switch (option) {
       case 0x0C:  // Host Name - RFC 2132
         {
@@ -267,19 +267,19 @@ void parsePacket(const uint8_t *data, uint16_t length) {
         {
           if (option_len >= 1) {
             /*
-                 * DHCP Message Type values:
-                 * 1 = DISCOVER  - Client looking for DHCP servers
-                 * 2 = OFFER     - Server offering an IP
-                 * 3 = REQUEST   - Client requesting the offered IP
-                 * 4 = DECLINE   - Client rejecting an offer
-                 * 5 = ACK       - Server confirming the IP
-                 * 6 = NAK       - Server denying the request
-                 * 7 = RELEASE   - Client releasing an IP
-                 * 8 = INFORM    - Client asking for configuration only
-                 *
-                 * We're most interested in type 3 (REQUEST) which indicates
-                 * a device is actively joining the network.
-                 */
+             * DHCP Message Type values:
+             * 1 = DISCOVER  - Client looking for DHCP servers
+             * 2 = OFFER     - Server offering an IP
+             * 3 = REQUEST   - Client requesting the offered IP
+             * 4 = DECLINE   - Client rejecting an offer
+             * 5 = ACK       - Server confirming the IP
+             * 6 = NAK       - Server denying the request
+             * 7 = RELEASE   - Client releasing an IP
+             * 8 = INFORM    - Client asking for configuration only
+             *
+             * We're most interested in type 3 (REQUEST) which indicates
+             * a device is actively joining the network.
+             */
             packet_type = data[opp + 2];
           }
           break;
@@ -363,13 +363,13 @@ void parsePacket(const uint8_t *data, uint16_t length) {
   Serial.println("================================");
 
   /*
-     * Send notification for DHCP Request packets
-     *
-     * DHCP Request (type 0x03) is the key event that indicates
-     * a device is joining the network. At this point, the device
-     * has already received an offer and is confirming its IP.
-     * This is the best time to notify the user about a new device.
-     */
+   * Send notification for DHCP Request packets
+   *
+   * DHCP Request (type 0x03) is the key event that indicates
+   * a device is joining the network. At this point, the device
+   * has already received an offer and is confirming its IP.
+   * This is the best time to notify the user about a new device.
+   */
   if (packet_type == 0x03) {
     Notification notification;
 
@@ -400,7 +400,7 @@ void parsePacket(const uint8_t *data, uint16_t length) {
 
 // ============================================================
 //  FREERTOS TASK: DHCP PROCESSING (Priority 3)
-//  ============================================================
+// ============================================================
 //
 //  This task runs independently from the main loop.
 //  It waits for packets in the queue and processes them
@@ -412,10 +412,10 @@ void dhcpTask(void *pvParameters) {
   DHCPPacket packet;
   while (true) {
     /*
-         * xQueueReceive blocks until a packet is available.
-         * portMAX_DELAY means it waits indefinitely.
-         * When a packet arrives, it's processed by parsePacket.
-         */
+     * xQueueReceive blocks until a packet is available.
+     * portMAX_DELAY means it waits indefinitely.
+     * When a packet arrives, it's processed by parsePacket.
+     */
     if (xQueueReceive(
           dhcpQueue,
           &packet,
@@ -429,7 +429,7 @@ void dhcpTask(void *pvParameters) {
 
 // ============================================================
 //  UDP CALLBACK - Receives packets on port 67
-//  ============================================================
+// ============================================================
 //
 //  This function is called by AsyncUDP whenever a packet
 //  arrives on port 67. It copies the packet and sends it
@@ -448,11 +448,11 @@ void onPacket(AsyncUDPPacket packet) {
          packet.length());
 
   /*
-     * xQueueSend with 1ms timeout:
-     * If the queue is full, the packet is dropped.
-     * This is acceptable for monitoring - losing a packet
-     * doesn't break the system, and the queue will clear.
-     */
+   * xQueueSend with 1ms timeout:
+   * If the queue is full, the packet is dropped.
+   * This is acceptable for monitoring - losing a packet
+   * doesn't break the system, and the queue will clear.
+   */
   if (xQueueSend(
         dhcpQueue,
         &msg,
@@ -486,29 +486,29 @@ void notificationTask(void *pvParameters) {
         message,
         sizeof(message),
         "Just accessed your network:\n\n"
-        "Hostname: %s\n"
-        "Requested IP: %s\n"
+        "Name: %s\n"
+        "IP: %s\n"
         "MAC Address: %s",
         notification.hostname,
         notification.ip,
         notification.mac);
 
       /*
-             * Workaround:
-             *
-             * After long idle periods, AsyncTelegram2 may attempt to reuse
-             * an existing TLS connection that has already been closed by the
-             * Telegram server. In this situation, sendTo() may silently fail
-             * without reporting an error.
-             *
-             * Closing the underlying WiFiClientSecure connection before each
-             * notification forces a new TCP/TLS session to be established,
-             * ensuring a valid connection for every message.
-             *
-             * Although this introduces a new TLS handshake for each
-             * notification, the overhead is negligible for this application,
-             * where notifications are infrequent.
-             */
+       * Workaround:
+       *
+       * After long idle periods, AsyncTelegram2 may attempt to reuse
+       * an existing TLS connection that has already been closed by the
+       * Telegram server. In this situation, sendTo() may silently fail
+       * without reporting an error.
+       *
+       * Closing the underlying WiFiClientSecure connection before each
+       * notification forces a new TCP/TLS session to be established,
+       * ensuring a valid connection for every message.
+       *
+       * Although this introduces a new TLS handshake for each
+       * notification, the overhead is negligible for this application,
+       * where notifications are infrequent.
+       */
       client.stop();
 
       bot.sendTo(chatid, message);
@@ -579,6 +579,8 @@ void setup() {
   wm.addParameter(&custom_text_box2);
   wm.addParameter(&custom_text_box3);
 
+  std::vector<const char *> menu = { "wifi", "restart", "exit" };
+  wm.setMenu(menu);
   wm.setSaveConfigCallback(saveConfigCallback);
   wm.setConfigPortalTimeout(180);
   wm.setConnectTimeout(30);
@@ -622,16 +624,16 @@ void setup() {
   }
 
   /*
-     * DHCP Queue
-     *
-     * This queue decouples the UDP receive callback from the DHCP parser.
-     * The AsyncUDP callback only copies the received packet and immediately
-     * returns, keeping interrupt processing as short as possible.
-     *
-     * The DHCP task consumes packets from this queue asynchronously.
-     * A size of 10 provides enough buffering for bursts of DHCP traffic
-     * without consuming excessive RAM.
-     */
+   * DHCP Queue
+   *
+   * This queue decouples the UDP receive callback from the DHCP parser.
+   * The AsyncUDP callback only copies the received packet and immediately
+   * returns, keeping interrupt processing as short as possible.
+   *
+   * The DHCP task consumes packets from this queue asynchronously.
+   * A size of 10 provides enough buffering for bursts of DHCP traffic
+   * without consuming excessive RAM.
+   */
   dhcpQueue = xQueueCreate(10, sizeof(DHCPPacket));
 
   while (dhcpQueue == nullptr) {
@@ -640,15 +642,15 @@ void setup() {
   }
 
   /*
-     * Telegram Notification Queue
-     *
-     * After parsing a DHCP packet, only the extracted device information
-     * (hostname, IP and MAC) is placed into this queue.
-     *
-     * Sending HTTPS requests to Telegram is significantly slower than
-     * parsing DHCP packets, so using a separate queue prevents network
-     * latency from delaying packet processing.
-     */
+   * Telegram Notification Queue
+   *
+   * After parsing a DHCP packet, only the extracted device information
+   * (hostname, IP and MAC) is placed into this queue.
+   *
+   * Sending HTTPS requests to Telegram is significantly slower than
+   * parsing DHCP packets, so using a separate queue prevents network
+   * latency from delaying packet processing.
+   */
   notificationQueue = xQueueCreate(10, sizeof(Notification));
 
   while (notificationQueue == nullptr) {
@@ -657,14 +659,14 @@ void setup() {
   }
 
   /*
-     * DHCP Processing Task
-     *
-     * This task waits for packets in the DHCP queue and parses them.
-     * Priority 3 gives it precedence over the Arduino loop and the
-     * notification task, ensuring DHCP packets are processed with the
-     * lowest possible latency.
-     *
-     */
+   * DHCP Processing Task
+   *
+   * This task waits for packets in the DHCP queue and parses them.
+   * Priority 3 gives it precedence over the Arduino loop and the
+   * notification task, ensuring DHCP packets are processed with the
+   * lowest possible latency.
+   *
+   */
   BaseType_t dhcp_result = xTaskCreate(
     dhcpTask,
     "DHCP Task",
@@ -679,17 +681,17 @@ void setup() {
   }
 
   /*
-     * Telegram Notification Task
-     *
-     * This task waits for notification requests generated by the DHCP
-     * parser and sends them to Telegram over HTTPS.
-     *
-     * Since network communication is much slower than packet parsing,
-     * this task runs independently with a lower priority (2), allowing
-     * DHCP processing to continue uninterrupted even while messages are
-     * being transmitted.
-     *
-     */
+   * Telegram Notification Task
+   *
+   * This task waits for notification requests generated by the DHCP
+   * parser and sends them to Telegram over HTTPS.
+   *
+   * Since network communication is much slower than packet parsing,
+   * this task runs independently with a lower priority (2), allowing
+   * DHCP processing to continue uninterrupted even while messages are
+   * being transmitted.
+   *
+   */
   BaseType_t notification_result = xTaskCreate(
     notificationTask,
     "Notification Task",
@@ -704,21 +706,21 @@ void setup() {
   }
 
   /*
-     * Configure the Telegram client
-     *
-     * Initialization sequence:
-     * 1. Convert the chat ID from the NVS string to int64_t.
-     * 2. Configure the Telegram root CA certificate used by WiFiClientSecure
-     *    to validate Telegram's HTTPS server certificate.
-     * 3. Configure the polling/update interval used internally by the library.
-     * 4. Set the bot token.
-     * 5. Keep trying to initialize the bot until a successful HTTPS connection
-     *    with the Telegram API is established.
-     *
-     * The application only starts listening for DHCP packets after bot.begin()
-     * succeeds. This guarantees that notification requests will never be queued
-     * before the Telegram client is fully initialized.
-     */
+   * Configure the Telegram client
+   *
+   * Initialization sequence:
+   * 1. Convert the chat ID from the NVS string to int64_t.
+   * 2. Configure the Telegram root CA certificate used by WiFiClientSecure
+   *    to validate Telegram's HTTPS server certificate.
+   * 3. Configure the polling/update interval used internally by the library.
+   * 4. Set the bot token.
+   * 5. Keep trying to initialize the bot until a successful HTTPS connection
+   *    with the Telegram API is established.
+   *
+   * The application only starts listening for DHCP packets after bot.begin()
+   * succeeds. This guarantees that notification requests will never be queued
+   * before the Telegram client is fully initialized.
+   */
   chatid = atoll(chat_id);
 
   client.setCACert(telegram_cert);
@@ -731,26 +733,26 @@ void setup() {
   // bot.enableInsecureFallback();
 
   /*
-     * Wait until the Telegram client is successfully initialized.
-     * If the Internet connection is temporarily unavailable, the ESP32
-     * will keep retrying every second.
-     */
+   * Wait until the Telegram client is successfully initialized.
+   * If the Internet connection is temporarily unavailable, the ESP32
+   * will keep retrying every second.
+   */
   while (!bot.begin()) {
     vTaskDelay(pdMS_TO_TICKS(1000));
     Serial.println("Connecting to Telegram bot...");
   }
 
   /*
-     * Send a startup notification indicating that the monitor
-     * is online and ready to receive DHCP packets.
-     */
+   * Send a startup notification indicating that the monitor
+   * is online and ready to receive DHCP packets.
+   */
   bot.sendTo(chatid, "NetworkMonitor is online!");
 
   /*
-     * UDP Listener on port 67 (DHCP)
-     * Port 67 is the DHCP server port. By listening here,
-     * we can capture all DHCP packets on the network.
-     */
+   * UDP Listener on port 67 (DHCP)
+   * Port 67 is the DHCP server port. By listening here,
+   * we can capture all DHCP packets on the network.
+   */
   while (!udp.listen(67)) {
     vTaskDelay(pdMS_TO_TICKS(1000));
     Serial.println("Waiting for UDP listening.");
