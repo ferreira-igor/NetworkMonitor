@@ -32,9 +32,7 @@ jobs:
             - .
           enable-deltas-report: true
           enable-warnings-report: true
-          cli-compile-flags: |
-            --export-binaries
-            --output-dir=./build
+          # ⬇️ REMOVA O cli-compile-flags ⬇️
 
       - name: Upload Firmware
         uses: actions/upload-artifact@v4
