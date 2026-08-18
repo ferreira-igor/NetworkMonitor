@@ -44,6 +44,7 @@ jobs:
             - .
           enable-deltas-report: true
           enable-warnings-report: true
+          cli-compile-flags: --export-binaries --output-dir=./build
 
       - name: 🔍 Localizar arquivos gerados
         run: |
