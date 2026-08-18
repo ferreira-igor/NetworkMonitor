@@ -4,79 +4,48 @@ on:
   push:
     paths:
       - '**/*.ino'
-      - '.github/workflows/*.yml'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
-
-env:
-  ARDUINO_CLI_VERSION: 1.5.1
-  ESP32_CORE_VERSION: 3.3.11
-  BOARD_FQBN: esp32:esp32:d32
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - fqbn: esp32:esp32:d32
+            platform-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v2
+      - name: Compilar Sketch
+        uses: arduino/compile-sketches@v1
         with:
-          version: ${{ env.ARDUINO_CLI_VERSION }}
-
-      - name: Configure ESP32 Core
-        run: |
-          arduino-cli config add board_manager.additional_urls \
-            https://espressif.github.io/arduino-esp32/package_esp32_index.json
-          arduino-cli core update-index
-
-      - name: Install ESP32 Core
-        run: |
-          arduino-cli core install esp32:esp32@${ESP32_CORE_VERSION}
-
-      - name: Install Libraries
-        run: |
-          arduino-cli lib install "WiFiManager@2.0.17"
-          arduino-cli lib install "AsyncTelegram2@2.3.4"
-          arduino-cli lib install "ArduinoJson@6.21.6"
-
-      - name: Detect and Compile Firmware
-        run: |
-          INO_FILE=$(find . -maxdepth 1 -type f -name "*.ino" -print -quit)
-          if [ -z "$INO_FILE" ]; then
-            echo "❌ ERRO: Nenhum arquivo .ino encontrado na raiz!"
-            exit 1
-          fi
-          echo "📝 Sketch encontrado: $INO_FILE"
-          
-          mkdir -p build
-          arduino-cli compile \
-            --fqbn "$BOARD_FQBN" \
-            --build-path ./build \
-            --export-binaries \
-            .
-
-      - name: Move binaries to root
-        run: |
-          find build -name "*.bin" -exec mv -v {} build/ \;
-          echo "📂 Arquivos em build/:"
-          ls -lh build/
-
-      - name: Verify Firmware
-        run: |
-          BIN_FILE=$(find build -maxdepth 1 -name "*.bin" -print -quit)
-          if [ -z "$BIN_FILE" ]; then
-            echo "❌ ERRO: .bin não foi gerado!"
-            exit 1
-          fi
-          echo "✅ Firmware gerado: $BIN_FILE"
-          echo "📊 Tamanho do firmware:"
-          ls -lh build/*.bin
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fqbn: ${{ matrix.board.fqbn }}
+          platforms: |
+            - name: esp32:esp32
+              source-url: ${{ matrix.board.platform-url }}
+              version: 3.3.11
+          libraries: |
+            - name: "WiFiManager@2.0.17"
+            - name: "AsyncTelegram2@2.3.4"
+            - name: "ArduinoJson@6.21.6"
+          sketch-paths: |
+            - .
+          enable-deltas-report: true
+          enable-warnings-report: true
+          cli-compile-flags: |
+            --export-binaries
+            --output-dir ./build
 
       - name: Upload Firmware
         uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ github.sha }}
-          path: build/*.bin
+          path: build/**/*.bin
           if-no-files-found: error
