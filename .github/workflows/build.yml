@@ -44,25 +44,6 @@ jobs:
             - .
           enable-deltas-report: true
           enable-warnings-report: true
-          cli-compile-flags: --export-binaries --output-dir=./build
-
-      - name: 🔍 Localizar arquivos gerados
-        run: |
-          echo "📂 Conteúdo do diretório atual:"
-          ls -la
-          echo ""
-          echo "📂 Procurando por .bin em toda parte:"
-          find . -name "*.bin" -type f 2>/dev/null || echo "Nenhum .bin encontrado"
-          echo ""
-          echo "📂 Procurando por pastas de build:"
-          find . -type d -name "build" -o -name "*build*" 2>/dev/null | head -20
-          echo ""
-          echo "📂 Estrutura completa (limitado a 50 itens):"
-          find . -type f 2>/dev/null | head -50
-
-      - name: Upload Firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-${{ github.sha }}
-          path: build/**/*.bin
-          if-no-files-found: error
+          cli-compile-flags: |
+            - --export-binaries
+            - --output-dir ./build
