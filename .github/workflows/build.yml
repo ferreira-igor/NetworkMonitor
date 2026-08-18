@@ -1,11 +1,9 @@
-name: Build Arduino Firmware
+name: Build Firmware
 
 on:
   push:
     paths:
       - '**/*.ino'
-      - 'libraries.txt'
-      - '.github/workflows/build.yml'
 
   workflow_dispatch:
 
@@ -19,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -27,21 +26,11 @@ jobs:
         with:
           version: ${{ env.ARDUINO_CLI_VERSION }}
 
-      - name: Show toolchain versions
-        run: |
-          echo "Arduino CLI:"
-          arduino-cli version
-
-          echo "ESP32 Core:"
-          arduino-cli core list
-
-      - name: Configure ESP32 board manager
+      - name: Configure ESP32 Core
         run: |
           arduino-cli config add board_manager.additional_urls \
             https://espressif.github.io/arduino-esp32/package_esp32_index.json
 
-      - name: Update board index
-        run: |
           arduino-cli core update-index
 
       - name: Install ESP32 Core
@@ -49,46 +38,66 @@ jobs:
           arduino-cli core install \
             esp32:esp32@${ESP32_CORE_VERSION}
 
-      - name: Install libraries
-        if: hashFiles('libraries.txt') != ''
+      - name: Install Libraries
         run: |
-          arduino-cli lib install --file libraries.txt
+          arduino-cli lib install "Adafruit BME280 Library@2.3.0"
+          arduino-cli lib install "Adafruit BusIO@1.17.4"
+          arduino-cli lib install "Adafruit Unified Sensor@1.1.15"
+          arduino-cli lib install "Adafruit SGP40 Sensor@1.1.4"
+          arduino-cli lib install "LiquidCrystal@1.0.7"
 
-      - name: Detect project
+      - name: Show Installed Versions
         run: |
-          INO_FILE=$(find . -maxdepth 1 -name "*.ino" -print -quit)
+          echo "Arduino CLI:"
+          arduino-cli version
+
+          echo ""
+          echo "ESP32 Core:"
+          arduino-cli core list
+
+          echo ""
+          echo "Libraries:"
+          arduino-cli lib list
+
+      - name: Detect Sketch
+        run: |
+          INO_FILE=$(find . -maxdepth 1 -type f -name "*.ino" -print -quit)
 
           if [ -z "$INO_FILE" ]; then
-            echo "ERROR: No .ino file found in project root."
+            echo "ERROR: No .ino file found in the project root."
             exit 1
           fi
 
-          PROJECT_NAME=$(basename "$INO_FILE" .ino)
+          echo "Sketch found: $INO_FILE"
 
-          echo "PROJECT_NAME=$PROJECT_NAME" >> "$GITHUB_ENV"
-
-          echo "Project: $PROJECT_NAME"
-          echo "Source: $INO_FILE"
-
-      - name: Create build directory
+      - name: Compile Firmware
         run: |
           mkdir -p build
 
-      - name: Compile firmware
-        run: |
           arduino-cli compile \
             --fqbn "$BOARD_FQBN" \
             --output-dir build \
             --export-binaries \
-            "$PROJECT_NAME"
+            .
 
-      - name: Show firmware information
+      - name: Verify Firmware
         run: |
-          echo "Generated firmware:"
+          echo "Generated files:"
           ls -lh build/
 
-      - name: Upload firmware
+          BIN_FILE=$(find build -maxdepth 1 -type f -name "*.bin" -print -quit)
+
+          if [ -z "$BIN_FILE" ]; then
+            echo "ERROR: .bin firmware was not generated."
+            exit 1
+          fi
+
+          echo ""
+          echo "Firmware generated successfully:"
+          echo "$BIN_FILE"
+
+      - name: Upload Firmware
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PROJECT_NAME }}-firmware
-          path: build/
+          name: firmware
+          path: build/*.bin
