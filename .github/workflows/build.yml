@@ -46,4 +46,4 @@ jobs:
           enable-warnings-report: true
           cli-compile-flags: |
             - --export-binaries
-            - --output-dir ./build
+            - --output-dir "./build"
