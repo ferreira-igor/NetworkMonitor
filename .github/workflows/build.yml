@@ -2,9 +2,19 @@ name: Build Firmware
 
 on:
   push:
+    branches:
+      - main
     paths:
-      - '**/*.ino'
+      - 'NetworkMonitor.ino'
       - '.github/workflows/build.yml'
+  
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'NetworkMonitor.ino'
+      - '.github/workflows/build.yml'
+
   workflow_dispatch:
 
 jobs:
@@ -13,30 +23,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Compilar Sketch
-        uses: arduino/compile-sketches@v1
+      - name: Compile Arduino Sketches
+        uses: arduino/compile-sketches@v1.1.3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           fqbn: esp32:esp32:d32
           platforms: |
             - name: esp32:esp32
               source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
               version: 3.3.11
           libraries: |
-            - name: "WiFiManager@2.0.17"
-            - name: "AsyncTelegram2@2.3.4"
-            - name: "ArduinoJson@6.21.6"
+            - name: WiFiManager
+              version: 2.0.17
+            - name: AsyncTelegram2
+              version: 2.3.4
+            - name: ArduinoJson
+              version: 6.21.6
           sketch-paths: |
             - .
           enable-deltas-report: true
           enable-warnings-report: true
-          # ⬇️ REMOVA O cli-compile-flags ⬇️
-
-      - name: Upload Firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-${{ github.sha }}
-          path: build/**/*.bin
-          if-no-files-found: error
