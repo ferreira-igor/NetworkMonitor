@@ -73,15 +73,15 @@ jobs:
             
             **Compiled on:** ${{ github.event.head_commit.timestamp }}
             **Commit hash:** `${{ github.sha }}`
-
-            ### 📂 Included files:
+            
+            ### Included files:
             - `${{ github.event.repository.name }}.ino.bin` - Main firmware
             - `${{ github.event.repository.name }}.ino.bootloader.bin` - Bootloader
             - `${{ github.event.repository.name }}.ino.merged.bin` - Complete firmware (bootloader + app) - **RECOMMENDED**
             - `${{ github.event.repository.name }}.ino.partitions.bin` - Partition table
             - `boot_app0.bin` - Bootloader app
             
-            ### ⚠️ How to flash:
+            ### How to flash:
             ```bash
             esptool.py --port /dev/ttyUSB0 erase-flash
             esptool.py --port /dev/ttyUSB0 write-flash 0x0 ${{ github.event.repository.name }}.ino.merged.bin
