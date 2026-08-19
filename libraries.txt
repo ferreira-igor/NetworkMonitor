@@ -1,3 +1,0 @@
-WiFiManager@2.0.17
-AsyncTelegram2@2.3.4
-ArduinoJson@6.21.6
