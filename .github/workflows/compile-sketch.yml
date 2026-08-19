@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: firmware-${{ github.sha }}
-          path: build/**/*.bin
+          path: build/*.bin
           if-no-files-found: error
 
       - name: Generate Release Tag
@@ -90,7 +90,7 @@ jobs:
             ```bash
             esptool --port /dev/ttyUSB0 erase-flash
             esptool --port /dev/ttyUSB0 write-flash 0x0 ${{ github.event.repository.name }}.ino.merged.bin
-          files: build/**/*.bin
+          files: build/*.bin
           draft: false
           prerelease: false
           overwrite_files: true
