@@ -69,8 +69,6 @@ jobs:
           tag_name: firmware
           name: "Latest Firmware"
           body: |
-            ## 📦 Latest Firmware
-
             **FQBN:** ${{ env.BOARD_FQBN }}
             
             **Compiled on:** ${{ github.event.head_commit.timestamp }}
@@ -87,6 +85,7 @@ jobs:
             ```bash
             esptool.py --port /dev/ttyUSB0 erase-flash
             esptool.py --port /dev/ttyUSB0 write-flash 0x0 ${{ github.event.repository.name }}.ino.merged.bin
+            ```
           files: build/*.bin
           draft: false
           prerelease: false
