@@ -69,15 +69,14 @@ jobs:
       - name: Generate Release Tag
         id: tag
         run: |
-          TAG_NAME=$(date -u +'%Y%m%d_%H%M')
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "tag_name=$(date -u +'%Y%m%d_%H%M')" >> $GITHUB_OUTPUT
 
       - name: GH Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v3.0.2
         with:
           tag_name: ${{ steps.tag.outputs.tag_name }}
-          name: "Firmware ${{ steps.tag.outputs.tag_name }}"
+          name: "${{ steps.tag.outputs.tag_name }}"
           body: |
             ## 📦 Firmware for LOLIN D32 (ESP32)
             
@@ -98,5 +97,7 @@ jobs:
           files: build/**/*.bin
           draft: false
           prerelease: false
+          overwrite: true
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
