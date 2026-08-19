@@ -1,0 +1,15 @@
+{
+  "name": "NetworkMonitor",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "improv": false,
+      "parts": [
+        { "path": "https://github.com/ferreira-igor/NetworkMonitor/releases/download/firmware/NetworkMonitor.ino.bootloader.bin", "offset": 4096 },
+        { "path": "https://github.com/ferreira-igor/NetworkMonitor/releases/download/firmware/NetworkMonitor.ino.partitions.bin", "offset": 32768 },
+        { "path": "https://github.com/ferreira-igor/NetworkMonitor/releases/download/firmware/boot_app0.bin", "offset": 57344 },
+        { "path": "https://github.com/ferreira-igor/NetworkMonitor/releases/download/firmware/NetworkMonitor.ino.bin", "offset": 65536 }
+      ]
+    }
+  ]
+}
