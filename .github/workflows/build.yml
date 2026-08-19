@@ -17,6 +17,11 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
 env:
   ARDUINO_CLI_VERSION: 1.5.1
   ESP32_BOARD_PACKAGE_URL: https://espressif.github.io/arduino-esp32/package_esp32_index.json
