@@ -62,19 +62,16 @@ jobs:
           path: build/*.bin
           if-no-files-found: error
 
-      - name: Generate Release Tag
-        id: tag
-        run: |
-          echo "tag_name=$(date -u +'%Y%m%d_%H%M')" >> $GITHUB_OUTPUT
-
       - name: GH Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v3.0.2
         with:
-          tag_name: ${{ steps.tag.outputs.tag_name }}
-          name: "${{ steps.tag.outputs.tag_name }}"
+          tag_name: firmware
+          name: "Latest Firmware"
           body: |
-            ## 📦 Firmware for LOLIN D32
+            ## 📦 Latest Firmware
+
+            **FQBN:** ${{ env.BOARD_FQBN }}
             
             **Compiled on:** ${{ github.event.head_commit.timestamp }}
             **Commit hash:** `${{ github.sha }}`
@@ -88,12 +85,11 @@ jobs:
             
             ### ⚠️ How to flash:
             ```bash
-            esptool --port /dev/ttyUSB0 erase-flash
-            esptool --port /dev/ttyUSB0 write-flash 0x0 ${{ github.event.repository.name }}.ino.merged.bin
+            esptool.py --port /dev/ttyUSB0 erase-flash
+            esptool.py --port /dev/ttyUSB0 write-flash 0x0 ${{ github.event.repository.name }}.ino.merged.bin
           files: build/*.bin
           draft: false
           prerelease: false
-          make_latest: true
           overwrite_files: true
           fail_on_unmatched_files: false
         env:
