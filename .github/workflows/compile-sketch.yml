@@ -1,0 +1,102 @@
+name: Compile Sketch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '*.ino'
+      - '.github/workflows/compile-sketch.yml'
+  
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '*.ino'
+      - '.github/workflows/compile-sketch.yml'
+
+  workflow_dispatch:
+
+env:
+  BOARD_FQBN: esp32:esp32:d32:PartitionScheme=no_ota
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v2.0.0
+        with:
+          version: 1.5.1
+
+      - name: Install ESP32 Core
+        run: |
+          arduino-cli config add board_manager.additional_urls "https://espressif.github.io/arduino-esp32/package_esp32_index.json"
+          arduino-cli core update-index
+          arduino-cli core install "esp32:esp32@3.3.11"
+
+      - name: Install Libraries
+        run: |
+          arduino-cli lib install "WiFiManager@2.0.17"
+          arduino-cli lib install "AsyncTelegram2@2.3.4"
+          arduino-cli lib install "ArduinoJson@6.21.6"
+
+      - name: Compile Firmware
+        run: |
+          mkdir -p build
+          arduino-cli compile \
+            --fqbn "$BOARD_FQBN" \
+            --export-binaries \
+            --build-path "./build" \
+            .
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: firmware-${{ github.sha }}
+          path: build/**/*.bin
+          if-no-files-found: error
+
+      - name: Generate Release Tag
+        id: tag
+        run: |
+          TAG_NAME=$(date -u +'%Y%m%d_%H%M')
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+      - name: GH Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v3.0.2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: "Firmware ${{ steps.tag.outputs.tag_name }}"
+          body: |
+            ## 📦 Firmware for LOLIN D32 (ESP32)
+            
+            **Compiled on:** ${{ github.event.head_commit.timestamp }}
+            **Commit hash:** `${{ github.sha }}`
+
+            ### 📂 Included files:
+            - `NetworkMonitor.ino.bin` - Main firmware
+            - `NetworkMonitor.ino.bootloader.bin` - Bootloader
+            - `NetworkMonitor.ino.merged.bin` - Complete firmware (bootloader + app)** - **RECOMMENDED**
+            - `NetworkMonitor.ino.partitions.bin` - Partition table
+            - `boot_app0.bin` - Bootloader app
+            
+            ### ⚠️ How to flash:
+            ```bash
+            esptool --port /dev/ttyUSB0 erase-flash
+            esptool --port /dev/ttyUSB0 write-flash 0x0 NetworkMonitor.ino.merged.bin
+          files: build/**/*.bin
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
