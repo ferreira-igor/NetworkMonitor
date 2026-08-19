@@ -51,7 +51,7 @@ Note: If your board uses a different pin for the built-in LED or reset button, m
 
 ### Method 1: Web Installer
 
-https://ferreira-igor.github.io/NetworkMonitor/webinstaller/flash.html
+[Click Here](https://ferreira-igor.github.io/NetworkMonitor/webinstaller/flash.html)
 
 ### Method 2: Pre-compiled Binary
 
