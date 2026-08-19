@@ -93,7 +93,7 @@ jobs:
           files: build/**/*.bin
           draft: false
           prerelease: false
-          overwrite: true
+          overwrite_files: true
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
