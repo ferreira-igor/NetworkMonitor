@@ -52,13 +52,8 @@ jobs:
 
       - name: Compile Firmware
         run: |
-          mkdir -p build
-          arduino-cli compile \
-            --fqbn "$BOARD_FQBN" \
-            --export-binaries \
-            --build-path "./build" \
-            .
-
+          arduino-cli compile --fqbn "$BOARD_FQBN" ./
+          
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -78,7 +73,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag_name }}
           name: "${{ steps.tag.outputs.tag_name }}"
           body: |
-            ## 📦 Firmware for LOLIN D32 (ESP32)
+            ## 📦 Firmware for LOLIN D32
             
             **Compiled on:** ${{ github.event.head_commit.timestamp }}
             **Commit hash:** `${{ github.sha }}`
@@ -86,7 +81,7 @@ jobs:
             ### 📂 Included files:
             - `NetworkMonitor.ino.bin` - Main firmware
             - `NetworkMonitor.ino.bootloader.bin` - Bootloader
-            - `NetworkMonitor.ino.merged.bin` - Complete firmware (bootloader + app)** - **RECOMMENDED**
+            - `NetworkMonitor.ino.merged.bin` - Complete firmware (bootloader + app) - **RECOMMENDED**
             - `NetworkMonitor.ino.partitions.bin` - Partition table
             - `boot_app0.bin` - Bootloader app
             
