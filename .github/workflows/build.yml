@@ -57,25 +57,37 @@ jobs:
             --build-path "./build" \
             .
 
-      - name: 🔍 Localizar e mover binários
-        run: |
-          echo "📂 Conteúdo da pasta build antes de mover:"
-          find build -type f
-          
-          # Move todos os .bin para a raiz da pasta build
-          find build -name "*.bin" -exec mv -v {} build/ \;
-          
-          echo ""
-          echo "📂 Conteúdo da pasta build depois de mover:"
-          ls -lh build/
-          
-          echo ""
-          echo "📂 Verificando se o .bin está na raiz:"
-          ls -lh build/*.bin
-
       - name: Upload Firmware
         uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ github.sha }}
-          path: build/*.bin
+          path: build/**/*.bin
           if-no-files-found: error
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Firmware v1.0.${{ github.run_number }}"
+          body: |
+            ## 📦 Firmware for LOLIN D32 (ESP32)
+            
+            **Compiled on:** ${{ github.event.head_commit.timestamp }}
+            **Commit hash:** `${{ github.sha }}`
+            **ESP32 Core Version:** ${{ env.ESP32_CORE_VERSION }}
+            
+            ### 📂 Included files:
+            - `NetworkMonitor.ino.bin` - Main firmware
+            - `NetworkMonitor.ino.bootloader.bin` - Bootloader
+            - `NetworkMonitor.ino.merged.bin` - Complete firmware (bootloader + app)
+            - `NetworkMonitor.ino.partitions.bin` - Partition table
+            - `boot_app0.bin` - Bootloader app
+            
+            ### ⚠️ How to flash:
+            Use **esptool.py** or **ESP32 Flash Download Tool** to flash `NetworkMonitor.ino.bin` at address `0x10000`.
+          files: build/**/*.bin
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
