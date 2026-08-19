@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 env:
-  BOARD_FQBN: esp32:esp32:d32:PartitionScheme=no_ota
+  BOARD_FQBN: esp32:esp32:d32:PartitionScheme=no_ota,EraseFlash=all
 
 jobs:
   build:
@@ -93,6 +93,7 @@ jobs:
           files: build/*.bin
           draft: false
           prerelease: false
+          make_latest: true
           overwrite_files: true
           fail_on_unmatched_files: false
         env:
