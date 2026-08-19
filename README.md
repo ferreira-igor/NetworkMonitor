@@ -58,17 +58,17 @@ Note: If your board uses a different pin for the built-in LED or reset button, m
 1. Download the latest binary from the Releases page
 
 2. Install esptool:
-  ```bash
-  pipx install esptool
-  ```
+   ```bash
+   pipx install esptool
+   ```
 
 3. Using esptool:
-  ```bash
-  esptool --port /dev/ttyUSB0 erase-flash
-  esptool --port /dev/ttyUSB0 write-flash 0x0 NetworkMonitor.ino.merged.bin
-  ```
+   ```bash
+   esptool --port /dev/ttyUSB0 erase-flash
+   esptool --port /dev/ttyUSB0 write-flash 0x0 NetworkMonitor.ino.merged.bin
+   ```
 
-  Replace /dev/ttyUSB0 with your actual serial port (or leave empty for auto-detect).
+   Replace /dev/ttyUSB0 with your actual serial port (or leave empty for auto-detect).
 
 ### Method 2: Using Arduino IDE
 
