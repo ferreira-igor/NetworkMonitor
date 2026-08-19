@@ -614,10 +614,10 @@ void setup() {
   wm.setConfigPortalTimeout(180);  // 3 minutes timeout
   wm.setConnectTimeout(30);        // 30 seconds connection timeout
 
-  // Block until WiFi is configured and connected
-  while (!wm.autoConnect(ap_name, ap_password)) {
-    Serial.println("Waiting for WiFi configuration.");
+  if (!wm.autoConnect(ap_name, ap_password)) {
+    Serial.println("Could not connect to WiFi! Rebooting...");
     vTaskDelay(pdMS_TO_TICKS(1000));
+    ESP.restart();
   }
 
   // Save configuration if it was changed in the captive portal
