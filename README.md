@@ -49,11 +49,7 @@ Note: If your board uses a different pin for the built-in LED or reset button, m
 
 ## Flashing
 
-### Method 1: Web Installer
-
-[Click Here](https://ferreira-igor.github.io/NetworkMonitor/webinstaller/flash.html)
-
-### Method 2: Pre-compiled Binary
+### Method 1: Pre-compiled Binary
 
 1. Download the latest binary from the Releases page
 
@@ -70,7 +66,7 @@ Note: If your board uses a different pin for the built-in LED or reset button, m
 
    Replace /dev/ttyUSB0 with your actual serial port (or leave empty for auto-detect).
 
-### Method 2: Using Arduino IDE
+### Method 3: Using Arduino IDE
 
 1. Install ESP32 Core:
    - Open Arduino IDE
