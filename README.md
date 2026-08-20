@@ -87,7 +87,7 @@ Note: If your board uses a different pin for the built-in LED or reset button, m
    - Select your ESP32 board: Tools > Board > ESP32 Arduino > [Your Board Model]
    - Select the correct port: Tools > Port > [Your USB Port]
    - Select "Erase All Flash Before Sketch Upload: Enabled"
-   - Select "Partition Scheme: Huge APP (3MB No OTA/1 MB SPIFFS)"
+   - Select "Partition Scheme: No OTA (Large APP)"
    - Click Upload (arrow icon) to compile and flash
 
 4. Monitor Serial Output:
