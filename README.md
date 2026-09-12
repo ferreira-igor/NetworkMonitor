@@ -1,5 +1,9 @@
 # NetworkMonitor
 
+![Arduino](https://img.shields.io/badge/Arduino-00979D?logo=arduino&logoColor=white)
+![ESP32](https://img.shields.io/badge/ESP32-E7352C?logo=espressif&logoColor=white)
+[![Build](https://github.com/ferreira-igor/NetworkMonitor/actions/workflows/compile-sketch.yml/badge.svg)](https://github.com/ferreira-igor/NetworkMonitor/actions/workflows/compile-sketch.yml)
+
 An ESP32-based network monitor that listens for DHCP traffic on a local network and sends Telegram notifications when a client requests an IP address.
 
 ## Features
